@@ -1,40 +1,9 @@
-from sys import argv
-from os import mkdir, path
 from _collections import deque
-nytimes_com = '''
-This New Liquid Is Magnetic, and Mesmerizing
+from os import mkdir, path
+from re import match
+from sys import argv
 
-Scientists have created “soft” magnets that can flow 
-and change shape, and that could be a boon to medicine 
-and robotics. (Source: New York Times)
-
-
-Most Wikipedia Profiles Are of Men. This Scientist Is Changing That.
-
-Jessica Wade has added nearly 700 Wikipedia biographies for
- important female and minority scientists in less than two 
- years.
-
-'''
-
-bloomberg_com = '''
-The Space Race: From Apollo 11 to Elon Musk
-
-It's 50 years since the world was gripped by historic images
- of Apollo 11, and Neil Armstrong -- the first man to walk 
- on the moon. It was the height of the Cold War, and the charts
- were filled with David Bowie's Space Oddity, and Creedence's 
- Bad Moon Rising. The world is a very different place than 
- it was 5 decades ago. But how has the space race changed since
- the summer of '69? (Source: Bloomberg)
-
-
-Twitter CEO Jack Dorsey Gives Talk at Apple Headquarters
-
-Twitter and Square Chief Executive Officer Jack Dorsey 
- addressed Apple Inc. employees at the iPhone maker’s headquarters
- Tuesday, a signal of the strong ties between the Silicon Valley giants.
-'''
+import requests
 
 
 class Browser:
@@ -50,35 +19,43 @@ class Browser:
         while True:
             raw_input = input()
             site_name = raw_input.rpartition(".")[0]
+            if not site_name:
+                site_name = raw_input.rpartition(".")[2]
+            if site_name.find('.') != -1:
+                tmp = site_name.split('.')
+                site_name = f'{tmp[1]}_{tmp[0]}'
             file_path = f'{target_dir}/{site_name}'
-            if site_name:
-                self.history.append(site_name)
+
             if raw_input == 'exit':
                 exit()
             elif raw_input == 'back':
                 if len(self.history) > 1:
                     self.read_file(f'{target_dir}/{self.history[-2]}')
-            elif path.isfile(file_path):
-                self.read_file(file_path)
             elif raw_input.find('.') == -1:
-                print('error wrong url')
-            elif raw_input == 'bloomberg.com':
-                print(bloomberg_com)
-                self.write_to_file(bloomberg_com, file_path)
-            elif raw_input == 'nytimes.com':
-                print(nytimes_com)
-                self.write_to_file(nytimes_com, file_path)
+                self.read_file(file_path) if path.isfile(file_path) else print('error wrong url')
+            elif match(r'[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)', raw_input):
+                content = self.get_site(raw_input)
+                self.history.append(site_name)
+                print(content)
+                self.write_to_file(content, file_path)
             else:
                 print('error')
 
+    def get_site(self, raw_input: str):
+        if not raw_input.startswith('http'):
+            raw_input = f'https://{raw_input}'
+        req = requests.get(raw_input, headers={'User-Agent': 'Mozilla/5.0'})
+        if not req:
+            print(req.status_code, req.reason)
+        return req.text
+
     def read_file(self, file_path):
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             print(f.read())
 
-
-    def write_to_file(self, url, file_path):
-        with open(file_path, 'w') as f:
-            print(url, file=f)
+    def write_to_file(self, content, file_path):
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
 
 
 if __name__ == '__main__':
