@@ -1,4 +1,3 @@
-import re
 from collections import deque
 from os import mkdir, path
 from re import match, sub
@@ -45,11 +44,14 @@ class Browser:
                 print('Incorrect URL')
 
     def get_site(self, raw_input: str):
+        headers = {'User-Agent': 'Mozilla/5.0'}
         if not raw_input.startswith('http'):
             raw_input = f'https://{raw_input}'
-        req = requests.get(raw_input, headers={'User-Agent': 'Mozilla/5.0'})
-        if not req:
+        req = requests.get(raw_input, headers=headers)
+        while not req:
             print(req.status_code, req.reason)
+            req = requests.get(raw_input, headers=headers)
+            
         soup = BeautifulSoup(req.content, 'html.parser')
 
         content = []
